@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          Int         @id @default(autoincrement())
+  name        String
+  email       String      @unique
+  dob         DateTime?
+  nisn        Int?
+  password    String
+  role        Role
+  grade       String?
+  address     String?
+  photo       String?
+  votes       Vote[]
+  candidacies Candidate[]
+}
+
+model Candidate {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int
+  visi      String?
+  biography String?
+  misi      String?
+  votes     Vote[]
+}
+
+model Vote {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  candidateId Int
+  voteTime    DateTime  @default(now())
+
+  @@unique([userId]) // Enforcing unique vote per user
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
