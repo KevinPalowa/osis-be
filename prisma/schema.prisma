@@ -19,6 +19,8 @@ model User {
   grade       String?
   address     String?
   photo       String?
+  schoolId    Int
+  school      School      @relation(fields: [schoolId], references: [id])
   votes       Vote[]
   candidacies Candidate[]
 }
@@ -30,6 +32,8 @@ model Candidate {
   visi      String?
   biography String?
   misi      String?
+  schoolId  Int
+  school    School  @relation(fields: [schoolId], references: [id])
   votes     Vote[]
 }
 
@@ -40,8 +44,19 @@ model Vote {
   candidate   Candidate @relation(fields: [candidateId], references: [id])
   candidateId Int
   voteTime    DateTime  @default(now())
+  schoolId    Int
+  school      School    @relation(fields: [schoolId], references: [id])
 
   @@unique([userId]) // Enforcing unique vote per user
+}
+
+model School {
+  id          Int         @id @default(autoincrement())
+  name        String
+  address     String
+  users       User[]
+  candidates  Candidate[]
+  votes       Vote[]
 }
 
 enum Role {
