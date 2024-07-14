@@ -6,18 +6,18 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create Admin User
+  const hashedPassword = await bcrypt.hash("123", 10);
   await prisma.user.create({
     data: {
       name: "Admin User",
-      email: "admin@example.com",
-      password: faker.internet.password(),
+      email: "admin@gmail.com",
+      password: hashedPassword,
       role: "ADMIN",
     },
   });
 
   // Create Students
   for (let i = 0; i < 100; i++) {
-    const hashedPassword = await bcrypt.hash("123", 10);
     await prisma.user.create({
       data: {
         name: faker.person.fullName(),
