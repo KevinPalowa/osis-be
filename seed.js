@@ -18,8 +18,8 @@ async function main() {
   }
 
   // Create Admin User
-  const hashedPassword = await bcrypt.hash("123", 10);
-  await prisma.user.create({
+  const hashedPassword = await bcrypt.hash("123456", 10);
+  const admin = await prisma.user.create({
     data: {
       name: "Admin User",
       email: "admin@gmail.com",
@@ -30,30 +30,37 @@ async function main() {
   });
 
   // Create Students
+  const studentPromises = [];
   for (let i = 0; i < 100; i++) {
-    await prisma.user.create({
-      data: {
-        name: faker.person.fullName(),
-        email: faker.internet.email(),
-        password: hashedPassword,
-        role: "STUDENT",
-        grade: faker.helpers.arrayElement(["9th", "10th", "11th", "12th"]),
-        schoolId: faker.helpers.arrayElement(schools).id, // Randomly associate with one of the schools
-      },
-    });
+    studentPromises.push(
+      prisma.user.create({
+        data: {
+          name: faker.person.fullName(),
+          email: faker.internet.email(),
+          password: hashedPassword,
+          role: "STUDENT",
+          grade: faker.helpers.arrayElement(["9th", "10th", "11th", "12th"]),
+          schoolId: faker.helpers.arrayElement(schools).id, // Randomly associate with one of the schools
+        },
+      })
+    );
   }
+  const students = await Promise.all(studentPromises);
 
   // Create Candidates
-  const students = await prisma.user.findMany({ where: { role: "STUDENT" } });
-
-  for (const student of students.slice(0, 10)) {
-    await prisma.candidate.create({
+  const candidatePromises = students.slice(0, 10).map((student) =>
+    prisma.candidate.create({
       data: {
         userId: student.id,
+        visi: faker.lorem.sentence(),
+        biography: faker.lorem.paragraph(),
+        misi: faker.lorem.sentence(),
         schoolId: student.schoolId, // Associate candidate with the same school as the user
       },
-    });
-  }
+    })
+  );
+  await Promise.all(candidatePromises);
+
 
   console.log("Seeding completed");
 }

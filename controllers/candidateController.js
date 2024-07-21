@@ -2,11 +2,15 @@ const prisma = require("../prismaClient");
 
 exports.getCandidates = async (req, res) => {
   try {
+    // Extract token from request headers
+    const schoolId = req.user.schoolId;
+
+    // Fetch candidates filtered by schoolId
     const candidates = await prisma.candidate.findMany({
-      include: {
-        user: true,
-      },
+      where: { schoolId },
+      include: { user: true },
     });
+
     res.status(200).json(candidates);
   } catch (error) {
     console.log(error);
@@ -32,9 +36,10 @@ exports.getCandidate = async (req, res) => {
 
 exports.addCandidate = async (req, res) => {
   const { userId, visi, misi, biography } = req.body;
+  const schoolId = req.user.schoolId;
   try {
     const candidates = await prisma.candidate.create({
-      data: { userId, visi, misi, biography },
+      data: { userId, visi, misi, biography, schoolId },
     });
     res.status(200).json(candidates);
   } catch (error) {

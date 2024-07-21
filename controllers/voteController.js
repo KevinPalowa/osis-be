@@ -1,15 +1,12 @@
 const prisma = require("../prismaClient");
-const jwt = require("jsonwebtoken");
 
 exports.createVote = async (req, res) => {
   const { candidateId } = req.body;
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-  const { userId } = jwt.verify(token, process.env.SECRET_KEY);
+  const { userId, schoolId } = req.user;
   try {
     // Check if the user has already voted
     const existingVote = await prisma.vote.findFirst({
-      where: { userId },
+      where: { userId, schoolId },
     });
 
     if (existingVote) {
@@ -22,6 +19,7 @@ exports.createVote = async (req, res) => {
         userId,
         candidateId,
         voteTime: new Date(),
+        schoolId,
       },
     });
 
@@ -34,7 +32,9 @@ exports.createVote = async (req, res) => {
 exports.getResults = async (req, res) => {
   try {
     // Fetch all candidates
+    const schoolId = req.user.schoolId;
     const candidates = await prisma.candidate.findMany({
+      where: { schoolId },
       include: {
         user: true,
       },
@@ -46,17 +46,19 @@ exports.getResults = async (req, res) => {
       _count: {
         candidateId: true,
       },
+      where: { schoolId },
     });
 
     // Fetch total voters
     const totalVoters = await prisma.user.count({
       where: {
         role: "STUDENT",
+        schoolId,
       },
     });
 
     // Fetch used votes
-    const usedVotes = await prisma.vote.count();
+    const usedVotes = await prisma.vote.count({ where: { schoolId } });
 
     // Map vote counts to candidates
     const results = candidates.map((candidate) => {
@@ -70,6 +72,7 @@ exports.getResults = async (req, res) => {
         votes: voteCount ? voteCount._count.candidateId : 0,
       };
     });
+    console.log(results);
 
     res.status(200).json({
       totalVoters,

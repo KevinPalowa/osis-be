@@ -19,8 +19,8 @@ exports.createUser = async (req, res) => {
   } = req.body;
   const photo = req.file;
   try {
+    const schoolId = req.user.schoolId;
     const photoUrl = await uploadImageToCloudinary(photo.path);
-    console.log(photoUrl);
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -41,6 +41,7 @@ exports.createUser = async (req, res) => {
         role,
         address,
         photo: photoUrl,
+        schoolId,
       },
     });
     res.status(201).json(user);
@@ -51,10 +52,17 @@ exports.createUser = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, schoolId } = req.body;
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({
+      where: {
+        AND: [
+          {
+            email,
+            schoolId,
+          },
+        ],
+      },
     });
 
     if (!user) {
@@ -70,9 +78,13 @@ exports.login = async (req, res) => {
       where: { userId: user.id },
     });
 
-    const token = jwt.sign({ userId: user.id }, SECRET_KEY, {
-      expiresIn: "1d",
-    });
+    const token = jwt.sign(
+      { userId: user.id, schoolId: user.schoolId },
+      SECRET_KEY,
+      {
+        expiresIn: "1d",
+      }
+    );
 
     delete user.password;
     res
@@ -90,13 +102,22 @@ exports.getUsers = async (req, res) => {
   const take = parseInt(limit, 10);
 
   try {
+    const schoolId = req.user.schoolId;
     const totalUsers = await prisma.user.count({
-      where: { role: "STUDENT", name: { contains: name, mode: "insensitive" } },
+      where: {
+        role: "STUDENT",
+        name: { contains: name, mode: "insensitive" },
+        schoolId,
+      },
     });
     const users = await prisma.user.findMany({
       skip,
       take,
-      where: { role: "STUDENT", name: { contains: name, mode: "insensitive" } },
+      where: {
+        role: "STUDENT",
+        name: { contains: name, mode: "insensitive" },
+        schoolId,
+      },
     });
     res.status(200).json({
       data: users,
@@ -113,6 +134,7 @@ exports.getUsers = async (req, res) => {
 };
 
 exports.getAllUsers = async (req, res) => {
+  const schoolId = req.user.schoolId;
   try {
     const users = await prisma.user.findMany({
       where: {
@@ -120,6 +142,7 @@ exports.getAllUsers = async (req, res) => {
         candidacies: {
           none: {},
         },
+        schoolId,
       },
     });
     res.status(200).json({
