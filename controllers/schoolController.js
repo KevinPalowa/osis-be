@@ -1,4 +1,5 @@
 const prisma = require("../prismaClient");
+const bcrypt = require("bcrypt");
 
 // Get all schools
 const getAllSchools = async (req, res) => {
@@ -30,27 +31,24 @@ const getSchoolById = async (req, res) => {
 // Create a new school
 const createSchool = async (req, res) => {
   const { name } = req.body;
-  console.log(name);
   try {
     const newSchool = await prisma.school.create({
       data: { name },
     });
-    res.status(201).json(newSchool);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Update a school by ID
-const updateSchool = async (req, res) => {
-  const { id } = req.params;
-  const { name, address } = req.body;
-  try {
-    const updatedSchool = await prisma.school.update({
-      where: { id: parseInt(id) },
-      data: { name, address },
+    const password = await bcrypt.hash("123", 10);
+    const email = `${name.replaceAll(" ", "_").toLowerCase()}@gmail.com`;
+    const user = await prisma.user.create({
+      data: {
+        name: name + " Admin",
+        email,
+        schoolId: newSchool.id,
+        password,
+        role: "ADMIN",
+      },
     });
-    res.json(updatedSchool);
+    console.log(user);
+    res.status(201).json(newSchool);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -100,6 +98,5 @@ module.exports = {
   getAllSchools,
   getSchoolById,
   createSchool,
-  updateSchool,
   deleteSchool,
 };
